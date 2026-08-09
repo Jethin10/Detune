@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { NetworkAudioEngine, type SoundMode } from './audioEngine'
+import { NetworkAudioEngine, type SoundMode, type NetworkProfile, INITIAL_PROFILE } from './audioEngine'
 
 export type ProbeEvent = {
   id: number
@@ -85,6 +85,7 @@ export function useNetworkInstrument() {
   const [xp, setXp] = useState(0)
   const [discovered, setDiscovered] = useState<string[]>([])
   const [inStorm, setInStorm] = useState(false)
+  const [profile, setProfile] = useState<NetworkProfile>(INITIAL_PROFILE)
   const [missions, setMissions] = useState<Mission[]>(() =>
     MISSION_POOL.slice(0, 3).map((mission) => ({ ...mission, count: 0, done: false })),
   )
@@ -181,6 +182,7 @@ export function useNetworkInstrument() {
     const engine = audio.current
     const intensity = Math.min(1, Math.max(0.15, event.latency / 600))
     engine?.play({ latency: event.latency, success: event.success, intensity }, voice)
+    setProfile(engine?.getProfile() ?? INITIAL_PROFILE)
 
     if (event.success) {
       const nextCombo = comboRef.current + 1
@@ -365,6 +367,7 @@ export function useNetworkInstrument() {
     multiplier,
     discovered,
     inStorm,
+    profile,
     totalSignals,
     toggleListening,
     toggleMuted,
