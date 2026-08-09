@@ -1,32 +1,39 @@
-# React + TypeScript + Vite
+# Detune
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+**Hear what your network feels.**
 
-Currently, two official plugins are available:
+Detune is a browser-based network sonification instrument. It turns live requests into an evolving soundscape:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- DNS-style network events become percussion
+- Response latency controls melodic pitch
+- Failed requests produce dissonance
 
-## React Compiler
+No network data leaves the browser beyond the probes themselves, and nothing is stored.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Run locally
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Use headphones, press **Listen to your network**, and browse the live signal log.
+
+## Validate
+
+```bash
+npm run lint
+npm run build
+```
+
+## How it works
+
+The app probes a rotating set of well-known public endpoints using privacy-preserving opaque browser requests. Measured round-trip time drives a custom Web Audio synthesis engine. Each target receives a distinct harmonic voice, while unavailable endpoints trigger intentionally unstable intervals.
+
+> Browser APIs do not expose isolated DNS timing consistently, so Detune sonifies complete request timing as a musical interpretation of the network—not as a diagnostic tool.
+
+## Live site
+
+[https://jethin10.github.io/Detune/](https://jethin10.github.io/Detune/)
+
+Built with React, TypeScript, Vite, and the Web Audio API.
