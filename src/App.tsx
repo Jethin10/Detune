@@ -5,14 +5,37 @@ import { TITLES } from './useNetworkInstrument'
 import type { ProbeEvent, Toast } from './useNetworkInstrument'
 import { useNetworkInstrument } from './useNetworkInstrument'
 
-function Waveform({ events, active, storm }: { events: ProbeEvent[]; active: boolean; storm: boolean }) {
-  const bars = Array.from({ length: 44 }, (_, index) => {
-    const event = events[index % Math.max(events.length, 1)]
-    const latency = event?.latency ?? 80 + Math.sin(index * 1.7) * 30
-    const height = active ? Math.min(94, 16 + latency / 4) : 10 + Math.sin(index * 0.8) * 5
-    return <span key={index} style={{ height: `${height}%`, animationDelay: `${-index * 72}ms` }} />
-  })
-  return <div className={`waveform ${active ? 'is-active' : ''} ${storm ? 'is-storm' : ''}`} aria-hidden="true">{bars}</div>
+const SOURCES = [
+  { host: 'Cloudflare', color: '#b7ff5a', instrument: 'glass bell' },
+  { host: 'Google', color: '#70dfff', instrument: 'marimba' },
+  { host: 'GitHub', color: '#bf8cff', instrument: 'wood tick' },
+  { host: 'Wikipedia', color: '#ffb86b', instrument: 'warm chime' },
+  { host: 'Quad9', color: '#ff719a', instrument: 'dark pluck' },
+]
+
+function SourceLanes({ events, active, storm }: { events: ProbeEvent[]; active: boolean; storm: boolean }) {
+  return (
+    <div className={`source-lanes ${active ? 'is-active' : ''} ${storm ? 'is-storm' : ''}`} aria-hidden="true">
+      {SOURCES.map((source) => {
+        const laneEvents = events.filter((event) => event.host === source.host)
+        const latest = laneEvents[0]
+        return (
+          <div className="source-lane" key={source.host}>
+            <span className="lane-dot" style={{ background: source.color, boxShadow: `0 0 8px ${source.color}` }} />
+            <span className="lane-name">{source.host}</span>
+            <span className="lane-bars">
+              {Array.from({ length: 24 }, (_, index) => {
+                const event = laneEvents[index]
+                const height = active ? Math.min(100, 16 + (event?.latency ?? 70) / 3.4) : 20 + Math.sin(index * 0.9) * 9
+                return <i key={index} className={event ? 'lit' : ''} style={{ height: `${height}%`, background: source.color }} />
+              })}
+            </span>
+            <span className={`lane-lat ${latest ? 'latest' : ''}`} key={latest?.id ?? 'empty'}>{latest ? `${latest.latency}ms` : '—'}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 function NetworkCore({ events, active, storm }: { events: ProbeEvent[]; active: boolean; storm: boolean }) {
@@ -71,7 +94,7 @@ const CHAPTERS = [
 function App() {
   const {
     isListening, isMuted, mode, events, stats, toasts, missions, score, bestScore, combo, bestCombo,
-    level, levelTitle, xp, xpToNext, multiplier, discovered, inStorm, totalSignals,
+    level, levelTitle, xp, xpToNext, multiplier, discovered, inStorm, profile, totalSignals,
     toggleListening, toggleMuted, changeMode, burst, dismissToast,
   } = useNetworkInstrument()
   const [sessionSeconds, setSessionSeconds] = useState(0)
@@ -111,7 +134,7 @@ function App() {
       <section className="hero" id="top">
         <div className="eyebrow"><span /> A game played with your internet <span /></div>
         <h1>Hear what your<br /><em>network feels.</em></h1>
-        <p className="intro">Every signal scores. Every failure costs. Stay clean to stack combos, discover signal sources, and survive the glitch storms that haunt your connection.</p>
+        <p className="intro">Every signal scores. Every failure costs. But the music itself is yours: your latency sets the tempo, your reliability picks the harmony, your jitter haunts the texture. No two connections ever sound alike.</p>
 
         <div className="game-hud" aria-label="Session stats">
           <div className="hud-chip" key={`level-${level}`}>
@@ -142,11 +165,13 @@ function App() {
           <div className="corner-label top-right">{inStorm ? 'STORM ACTIVE' : isListening ? 'CAPTURING' : 'STANDBY'}</div>
           {inStorm && <div className="storm-banner">⚠ GLITCH STORM — SIGNAL INTEGRITY BREACH</div>}
           <NetworkCore events={events} active={isListening} storm={inStorm} />
-          <Waveform events={events} active={isListening} storm={inStorm} />
+          <SourceLanes events={events} active={isListening} storm={inStorm} />
           <div className="instrument-footer">
-            <div><span>LATENCY</span><strong>{stats.average || '—'}<small>{stats.average ? ' ms' : ''}</small></strong></div>
+            <div><span>TEMPO</span><strong>{profile.tempoBpm}<small> bpm · from latency</small></strong></div>
+            <div><span>HARMONY</span><strong className={`harmony-${profile.harmony.toLowerCase()}`}>{profile.harmony}</strong></div>
             <div><span>RELIABILITY</span><strong>{stats.reliability}<small>%</small></strong></div>
-            <div><span>DISSONANCE</span><strong>{stats.failures}</strong></div>
+            <div><span>JITTER</span><strong>{profile.jitterMs}<small> ms · warbles</small></strong></div>
+            <div><span>REGISTER</span><strong className={`harmony-${profile.harmony.toLowerCase()}`}>{profile.register}</strong></div>
           </div>
         </div>
 
@@ -202,8 +227,8 @@ function App() {
         <h2>Your connection,<br />reimagined as a game.</h2>
         <div className="translation-grid">
           <article><div className="glyph dns"><i /><i /><i /><i /></div><span>01</span><h3>DNS becomes<br />percussion</h3><p>Every domain lookup strikes the beat behind the music—the rhythm you keep picking to.</p></article>
-          <article><div className="glyph latency"><i /><i /><i /><i /><i /></div><span>02</span><h3>Latency shapes<br />the melody</h3><p>Fast responses sing high and score big. Lag drags the tune down—and your multiplier with it.</p></article>
-          <article><div className="glyph failure"><i /><i /><i /></div><span>03</span><h3>Failures create<br />dissonance</h3><p>Dropped signals break your combo and bend the harmony. Survive the storm and the music clears again.</p></article>
+          <article><div className="glyph latency"><i /><i /><i /><i /><i /></div><span>02</span><h3>Latency is<br />the tempo</h3><p>Your round-trip sets the groove. Fast pings speed the pulse and lift the register; lag drags everything down into slow, low tension.</p></article>
+          <article><div className="glyph failure"><i /><i /><i /></div><span>03</span><h3>Failures fracture<br />the harmony</h3><p>Dropped signals bend your chords out of tune and thin the beat. Survive the storm and the music resolves again.</p></article>
         </div>
       </section>
 
@@ -211,18 +236,18 @@ function App() {
         <div className="log-header"><div><span className="section-kicker">SIGNAL SOURCES</span><h2>Your constellation.</h2></div><span className="log-count">{discovered.length} / {5} TRACKED</span></div>
         <div className="constellation-grid">
           {[
-            { host: 'Cloudflare', color: '#b7ff5a' },
-            { host: 'Google', color: '#70dfff' },
-            { host: 'GitHub', color: '#bf8cff' },
-            { host: 'Wikipedia', color: '#ffb86b' },
-            { host: 'Quad9', color: '#ff719a' },
+            { host: 'Cloudflare', color: '#b7ff5a', instrument: 'glass bell' },
+            { host: 'Google', color: '#70dfff', instrument: 'marimba' },
+            { host: 'GitHub', color: '#bf8cff', instrument: 'wood tick' },
+            { host: 'Wikipedia', color: '#ffb86b', instrument: 'warm chime' },
+            { host: 'Quad9', color: '#ff719a', instrument: 'dark pluck' },
           ].map((node) => {
             const found = discovered.includes(node.host)
             return (
               <div className={`constellation-node ${found ? 'found' : ''}`} key={node.host}>
                 <span className="node-dot" style={found ? { background: node.color, boxShadow: `0 0 16px ${node.color}` } : undefined} />
                 <strong>{found ? node.host : '?????'}</strong>
-                <small>{found ? 'TRACKED' : 'UNCHARTED'}</small>
+                <small>{found ? node.instrument.toUpperCase() : 'UNCHARTED'}</small>
               </div>
             )
           })}

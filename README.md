@@ -39,9 +39,17 @@ npm run build
 
 ## How it works
 
-The app probes a rotating set of well-known public endpoints using privacy-preserving opaque browser requests. Measured round-trip time drives a custom Web Audio synthesis engine. Each target receives a distinct harmonic voice, while unavailable endpoints trigger intentionally unstable intervals.
+## How it works
 
-> Browser APIs do not expose isolated DNS timing consistently, so Detune sonifies complete request timing as a musical interpretation of the network—not as a diagnostic tool.
+The app probes a rotating set of well-known public endpoints using privacy-preserving opaque browser requests. But the music is not pre-composed — it is **mapped live from your measurements**:
+
+- Your **latency** sets the tempo and register (fast pings = faster, higher; lag = slow, low)
+- Your **reliability** picks the harmony (consonant → tensed → fractured) and the density of the drum pattern
+- Your **jitter** warps the pad texture — an unstable connection makes the whole bed wobble
+- Each of the five sources has its own instrument voice, so you can hear *which server* is answering
+- Failures sound in the failing source's own voice, bent out of tune
+
+Glitch storms probe a reserved TEST-NET address (203.0.113.9) — genuine, guaranteed failures — to dramatize packet loss. The game layer (score, combos, levels, directives) runs entirely client-side; only your best score and combo are stored locally.
 
 ## Live site
 
