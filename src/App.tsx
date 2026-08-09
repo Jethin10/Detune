@@ -1,4 +1,6 @@
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
+import type { SoundMode } from './audioEngine'
 import type { ProbeEvent } from './useNetworkInstrument'
 import { useNetworkInstrument } from './useNetworkInstrument'
 
@@ -38,9 +40,38 @@ function SoundIcon({ muted }: { muted: boolean }) {
   )
 }
 
+const MODES: { id: SoundMode; name: string; detail: string }[] = [
+  { id: 'drift', name: 'Drift', detail: 'Slow · spacious' },
+  { id: 'pulse', name: 'Pulse', detail: 'Rhythmic · bright' },
+  { id: 'surge', name: 'Surge', detail: 'Fast · unstable' },
+]
+
+const CHAPTERS = [
+  { at: 0, name: 'First contact', detail: 'Signal percussion online' },
+  { at: 15, name: 'Low current', detail: 'Sub frequencies emerge' },
+  { at: 35, name: 'Harmonic bloom', detail: 'Upper harmonics unlocked' },
+  { at: 65, name: 'Full spectrum', detail: 'The network reveals itself' },
+]
+
 function App() {
-  const { isListening, isMuted, events, stats, toggleListening, toggleMuted } = useNetworkInstrument()
+  const { isListening, isMuted, mode, events, stats, toggleListening, toggleMuted, changeMode, burst } = useNetworkInstrument()
+  const [sessionSeconds, setSessionSeconds] = useState(0)
   const connection = navigator.onLine ? 'Network online' : 'Network offline'
+
+  useEffect(() => {
+    if (!isListening) return
+    const timer = window.setInterval(() => setSessionSeconds((value) => value + 1), 1000)
+    return () => window.clearInterval(timer)
+  }, [isListening])
+
+  const currentChapter = [...CHAPTERS].reverse().find((chapter) => sessionSeconds >= chapter.at) ?? CHAPTERS[0]
+  const nextChapter = CHAPTERS.find((chapter) => chapter.at > sessionSeconds)
+  const fingerprint = useMemo(() => {
+    if (events.length < 4) return 'Unclassified signal'
+    const texture = stats.reliability < 80 ? 'Fractured' : stats.average > 300 ? 'Deep' : stats.average < 120 ? 'Glass' : 'Velvet'
+    const motion = events[0].latency % 2 === 0 ? 'Current' : 'Static'
+    return `${texture} ${motion}`
+  }, [events, stats.average, stats.reliability])
 
   return (
     <main>
@@ -72,11 +103,37 @@ function App() {
           </div>
         </div>
 
-        <button className={`listen-button ${isListening ? 'listening' : ''}`} onClick={() => void toggleListening()}>
-          <span className="button-pulse"><i /></span>
-          <span><strong>{isListening ? 'Stop listening' : 'Listen to your network'}</strong><small>{isListening ? 'The signal is now audible' : 'Headphones recommended'}</small></span>
-        </button>
+        <div className="mode-selector" aria-label="Sound mode">
+          {MODES.map((soundMode) => (
+            <button className={mode === soundMode.id ? 'active' : ''} key={soundMode.id} onClick={() => changeMode(soundMode.id)}>
+              <strong>{soundMode.name}</strong><small>{soundMode.detail}</small>
+            </button>
+          ))}
+        </div>
+
+        <div className="primary-controls">
+          <button className={`listen-button ${isListening ? 'listening' : ''}`} onClick={() => void toggleListening()}>
+            <span className="button-pulse"><i /></span>
+            <span><strong>{isListening ? 'Stop listening' : 'Listen to your network'}</strong><small>{isListening ? 'The signal is now audible' : 'Headphones recommended'}</small></span>
+          </button>
+          <button className="burst-button" disabled={!isListening} onClick={burst}><span>⌁</span><strong>Send a signal burst</strong><small>Probe the full constellation</small></button>
+        </div>
         <p className="privacy-note"><span>◇</span> Runs entirely in your browser. No data is collected.</p>
+
+        <div className={`journey-card ${isListening ? 'active' : ''}`}>
+          <div className="journey-copy">
+            <span className="section-kicker">YOUR LIVE COMPOSITION</span>
+            <h3>{fingerprint}</h3>
+            <p>{isListening ? currentChapter.detail : 'Start the instrument to discover the unique sonic identity of this connection.'}</p>
+          </div>
+          <div className="journey-progress">
+            <div className="journey-meta"><span>CHAPTER {CHAPTERS.indexOf(currentChapter) + 1} / {CHAPTERS.length}</span><time>{Math.floor(sessionSeconds / 60).toString().padStart(2, '0')}:{(sessionSeconds % 60).toString().padStart(2, '0')}</time></div>
+            <div className="chapter-track">
+              {CHAPTERS.map((chapter) => <i key={chapter.name} className={sessionSeconds >= chapter.at && isListening ? 'reached' : ''} />)}
+            </div>
+            <div className="chapter-labels"><strong>{isListening ? currentChapter.name : 'Waiting for signal'}</strong><span>{nextChapter && isListening ? `Next layer in ${nextChapter.at - sessionSeconds}s` : isListening ? 'All layers unlocked' : 'Four evolving layers'}</span></div>
+          </div>
+        </div>
       </section>
 
       <section className="translation">

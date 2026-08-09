@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { NetworkAudioEngine } from './audioEngine'
+import { NetworkAudioEngine, type SoundMode } from './audioEngine'
 
 export type ProbeEvent = {
   id: number
@@ -24,6 +24,7 @@ const timeout = (ms: number, controller: AbortController) =>
 export function useNetworkInstrument() {
   const [isListening, setIsListening] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
+  const [mode, setMode] = useState<SoundMode>('drift')
   const [events, setEvents] = useState<ProbeEvent[]>([])
   const audio = useRef<NetworkAudioEngine | null>(null)
   const sequence = useRef(0)
@@ -67,17 +68,19 @@ export function useNetworkInstrument() {
   useEffect(() => {
     if (!isListening) return
     void probe()
-    const interval = window.setInterval(() => void probe(), 1250)
+    const intervalMs = mode === 'drift' ? 1450 : mode === 'pulse' ? 1050 : 680
+    const interval = window.setInterval(() => void probe(), intervalMs)
     return () => window.clearInterval(interval)
-  }, [isListening, probe])
+  }, [isListening, mode, probe])
 
   const toggleListening = useCallback(async () => {
     if (!isListening) {
       audio.current ??= new NetworkAudioEngine()
+      audio.current.setMode(mode)
       await audio.current.start()
     }
     setIsListening((current) => !current)
-  }, [isListening])
+  }, [isListening, mode])
 
   const toggleMuted = useCallback(() => {
     setIsMuted((current) => {
@@ -85,6 +88,16 @@ export function useNetworkInstrument() {
       return !current
     })
   }, [])
+
+  const changeMode = useCallback((nextMode: SoundMode) => {
+    setMode(nextMode)
+    audio.current?.setMode(nextMode)
+  }, [])
+
+  const burst = useCallback(() => {
+    if (!isListening) return
+    ;[0, 180, 360, 540, 720].forEach((delay) => window.setTimeout(() => void probe(), delay))
+  }, [isListening, probe])
 
   const stats = useMemo(() => {
     const successful = events.filter((event) => event.success)
@@ -99,5 +112,5 @@ export function useNetworkInstrument() {
     }
   }, [events])
 
-  return { isListening, isMuted, events, stats, toggleListening, toggleMuted }
+  return { isListening, isMuted, mode, events, stats, toggleListening, toggleMuted, changeMode, burst }
 }

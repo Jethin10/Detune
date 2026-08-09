@@ -4,12 +4,20 @@ export type NetworkSignal = {
   intensity: number
 }
 
-const NOTES = [110, 130.81, 146.83, 164.81, 196, 220, 261.63]
+export type SoundMode = 'drift' | 'pulse' | 'surge'
+
+const SCALES: Record<SoundMode, number[]> = {
+  drift: [110, 130.81, 146.83, 164.81, 196, 220, 261.63],
+  pulse: [130.81, 146.83, 174.61, 196, 233.08, 261.63, 293.66],
+  surge: [82.41, 123.47, 138.59, 185, 207.65, 277.18, 311.13],
+}
 
 export class NetworkAudioEngine {
   private context: AudioContext | null = null
   private master: GainNode | null = null
   private muted = false
+  private eventCount = 0
+  private mode: SoundMode = 'drift'
 
   async start() {
     if (!this.context) this.createGraph()
@@ -23,15 +31,23 @@ export class NetworkAudioEngine {
     }
   }
 
+  setMode(mode: SoundMode) {
+    this.mode = mode
+  }
+
   play(signal: NetworkSignal, voice: number) {
     if (!this.context || !this.master || this.muted) return
     const now = this.context.currentTime
+    const scale = SCALES[this.mode]
+    this.eventCount += 1
     this.playPercussion(now, signal.intensity)
 
     if (signal.success) {
-      const note = NOTES[voice % NOTES.length]
+      const note = scale[(voice + Math.floor(this.eventCount / 7)) % scale.length]
       const latencyPitch = Math.max(0.58, Math.min(1.7, 95 / Math.max(signal.latency, 20)))
       this.playTone(now + 0.025, note * latencyPitch, signal.intensity)
+      if (this.eventCount % 4 === 0) this.playBass(now, scale[0] / 2)
+      if (this.eventCount > 14 && this.eventCount % 7 === 0) this.playShimmer(now + 0.08, note * 2)
     } else {
       this.playFailure(now + 0.025)
     }
@@ -115,6 +131,34 @@ export class NetworkAudioEngine {
     overtone.start(now)
     oscillator.stop(now + 0.75)
     overtone.stop(now + 0.75)
+  }
+
+  private playBass(now: number, frequency: number) {
+    if (!this.context || !this.master) return
+    const oscillator = this.context.createOscillator()
+    const gain = this.context.createGain()
+    oscillator.type = 'sine'
+    oscillator.frequency.setValueAtTime(frequency, now)
+    oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.72, now + 0.4)
+    gain.gain.setValueAtTime(0.11, now)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8)
+    oscillator.connect(gain).connect(this.master)
+    oscillator.start(now)
+    oscillator.stop(now + 0.85)
+  }
+
+  private playShimmer(now: number, frequency: number) {
+    if (!this.context || !this.master) return
+    const oscillator = this.context.createOscillator()
+    const gain = this.context.createGain()
+    oscillator.type = 'sine'
+    oscillator.frequency.value = frequency
+    gain.gain.setValueAtTime(0.001, now)
+    gain.gain.exponentialRampToValueAtTime(0.04, now + 0.08)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.8)
+    oscillator.connect(gain).connect(this.master)
+    oscillator.start(now)
+    oscillator.stop(now + 1.85)
   }
 
   private playFailure(now: number) {
