@@ -10,6 +10,17 @@ Detune is a browser-based network sonification instrument. It turns live request
 
 No network data leaves the browser beyond the probes themselves, and nothing is stored.
 
+## Gameplay
+
+- **Score & combos** — every clean signal scores; each success stacks a combo multiplier, each failure breaks it.
+- **Levels & ranks** — XP from signals, storms, and directives earns ranks from Operator to The Dissonance.
+- **Signal sources** — discover the five tracked sources (Cloudflare, Google, GitHub, Wikipedia, Quad9) to fill your constellation.
+- **Glitch storms** — every so often the network misbehaves: a storm of failures hits your ears as harsh dissonance until the signal clears.
+- **Directives** — three rotating missions per round; clear all three for bonus XP.
+- **Three modes** — Drift (ambient), Pulse (rhythmic), Surge (frantic), each with its own scale, tempo, and drum pattern.
+
+Everything runs in the browser; only your best score and combo are stored locally.
+
 ## Run locally
 
 ```bash
